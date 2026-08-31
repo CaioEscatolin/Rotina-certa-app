@@ -718,14 +718,14 @@ function initTurmaGate() {
 document.addEventListener('click', (e) => {
 
   const modeBtn = e.target.closest('[data-mode]');
-  if (modeBtn) {
-    if (modeBtn.dataset.mode === 'professor' && !professorUnlocked) {
-      openProfessorPasswordModal();
-    } else {
-      setMode(modeBtn.dataset.mode);
-    }
-    return;
+if (modeBtn){
+  if (modeBtn.dataset.mode === 'professor'){
+    openProfessorPasswordModal();
+  } else {
+    setMode(modeBtn.dataset.mode);
   }
+  return;
+}
 
   if (e.target.closest('#professor-password-submit')) { submitProfessorPassword(); return; }
   if (e.target.closest('[data-action="close-professor-password"]')) { closeProfessorPasswordModal(); return; }
