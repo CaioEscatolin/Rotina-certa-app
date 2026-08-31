@@ -20,35 +20,35 @@ const LOCAL_KEY = 'rotinaCerta:local:v1';
 const TURMA_KEY = 'rotinaCerta:turma';
 
 const WEEKDAYS = [
-  { key:'dom', label:'Domingo', short:'Dom' },
-  { key:'seg', label:'Segunda-feira', short:'Seg' },
-  { key:'ter', label:'Terça-feira', short:'Ter' },
-  { key:'qua', label:'Quarta-feira', short:'Qua' },
-  { key:'qui', label:'Quinta-feira', short:'Qui' },
-  { key:'sex', label:'Sexta-feira', short:'Sex' },
-  { key:'sab', label:'Sábado', short:'Sáb' },
+  { key: 'dom', label: 'Domingo', short: 'Dom' },
+  { key: 'seg', label: 'Segunda-feira', short: 'Seg' },
+  { key: 'ter', label: 'Terça-feira', short: 'Ter' },
+  { key: 'qua', label: 'Quarta-feira', short: 'Qua' },
+  { key: 'qui', label: 'Quinta-feira', short: 'Qui' },
+  { key: 'sex', label: 'Sexta-feira', short: 'Sex' },
+  { key: 'sab', label: 'Sábado', short: 'Sáb' },
 ];
 
 const CATEGORIES = [
-  { key:'higiene',      label:'Higiene',       color:'#7FA8C9' },
-  { key:'alimentacao',  label:'Alimentação',   color:'#E0A458' },
-  { key:'estudo',       label:'Estudo',        color:'#9C8AC7' },
-  { key:'lazer',        label:'Lazer',         color:'#7BB08A' },
-  { key:'transicao',    label:'Transição',     color:'#C98A7B' },
-  { key:'outro',        label:'Outro',         color:'#9AA5A6' },
+  { key: 'higiene', label: 'Higiene', color: '#7FA8C9' },
+  { key: 'alimentacao', label: 'Alimentação', color: '#E0A458' },
+  { key: 'estudo', label: 'Estudo', color: '#9C8AC7' },
+  { key: 'lazer', label: 'Lazer', color: '#7BB08A' },
+  { key: 'transicao', label: 'Transição', color: '#C98A7B' },
+  { key: 'outro', label: 'Outro', color: '#9AA5A6' },
 ];
 
 const ICONS = [
-  '⏰','🛏️','🪥','🚿','🧼','👕','🍞','🥣','🍎','🥪','🍽️','🎒',
-  '📚','✏️','🎨','🔬','🗣️','🔢','🧩','⚽','🎵','🧘','😴','🚌',
-  '🔔','🚪','🏠','🧴','💧','🖍️','📖','🎯','🖥️','🐾','🧸','🌳'
+  '⏰', '🛏️', '🪥', '🚿', '🧼', '👕', '🍞', '🥣', '🍎', '🥪', '🍽️', '🎒',
+  '📚', '✏️', '🎨', '🔬', '🗣️', '🔢', '🧩', '⚽', '🎵', '🧘', '😴', '🚌',
+  '🔔', '🚪', '🏠', '🧴', '💧', '🖍️', '📖', '🎯', '🖥️', '🐾', '🧸', '🌳'
 ];
 
-const AVATAR_COLORS = ['#33565A','#7FA66B','#C98A7B','#9C8AC7','#E0A458','#4C7377'];
+const AVATAR_COLORS = ['#33565A', '#7FA66B', '#C98A7B', '#9C8AC7', '#E0A458', '#4C7377'];
 
 /* ---------------- preferências locais (por aparelho) ---------------- */
 
-function defaultLocalPrefs(){
+function defaultLocalPrefs() {
   return {
     activeMode: 'crianca',
     activeChildViewer: null,
@@ -58,19 +58,19 @@ function defaultLocalPrefs(){
   };
 }
 
-function loadLocalPrefs(){
-  try{
+function loadLocalPrefs() {
+  try {
     const raw = localStorage.getItem(LOCAL_KEY);
-    if (raw){
+    if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && parsed.settings) return parsed;
     }
-  }catch(e){ /* ignore corrupted storage */ }
+  } catch (e) { /* ignore corrupted storage */ }
   return defaultLocalPrefs();
 }
 
-function saveLocalPrefs(){
-  try{ localStorage.setItem(LOCAL_KEY, JSON.stringify(localPrefs)); }catch(e){ /* storage unavailable */ }
+function saveLocalPrefs() {
+  try { localStorage.setItem(LOCAL_KEY, JSON.stringify(localPrefs)); } catch (e) { /* storage unavailable */ }
 }
 
 let localPrefs = loadLocalPrefs();
@@ -82,7 +82,7 @@ let saveSharedTimer = null;
 
 /* ---------------- dados padrão de uma turma nova ---------------- */
 
-function defaultSharedData(){
+function defaultSharedData() {
   return {
     children: [],
     checks: {}
@@ -91,24 +91,24 @@ function defaultSharedData(){
 
 /* ---------------- conexão com a turma (Firestore) ---------------- */
 
-function ensureLocalSelection(){
-  if (!sharedData.children.find(c => c.id === localPrefs.activeChildViewer)){
+function ensureLocalSelection() {
+  if (!sharedData.children.find(c => c.id === localPrefs.activeChildViewer)) {
     localPrefs.activeChildViewer = sharedData.children[0] ? sharedData.children[0].id : null;
   }
-  if (!sharedData.children.find(c => c.id === localPrefs.activeChildTeacher)){
+  if (!sharedData.children.find(c => c.id === localPrefs.activeChildTeacher)) {
     localPrefs.activeChildTeacher = sharedData.children[0] ? sharedData.children[0].id : null;
   }
   saveLocalPrefs();
 }
 
-function connectToTurma(code){
+function connectToTurma(code) {
   turmaCode = code.trim().toUpperCase();
   localStorage.setItem(TURMA_KEY, turmaCode);
   if (unsubscribeTurma) unsubscribeTurma();
 
   const ref = doc(db, 'turmas', turmaCode);
   unsubscribeTurma = onSnapshot(ref, (snap) => {
-    if (snap.exists()){
+    if (snap.exists()) {
       sharedData = snap.data();
     } else {
       sharedData = defaultSharedData();
@@ -130,7 +130,7 @@ function connectToTurma(code){
   document.getElementById('app').classList.remove('hidden');
 }
 
-function leaveTurma(){
+function leaveTurma() {
   if (!confirm('Sair desta turma neste aparelho? Você pode entrar de novo quando quiser com o código.')) return;
   if (unsubscribeTurma) unsubscribeTurma();
   turmaCode = '';
@@ -141,7 +141,7 @@ function leaveTurma(){
   if (input) input.value = '';
 }
 
-function saveShared(){
+function saveShared() {
   if (!turmaCode) return;
   setDoc(doc(db, 'turmas', turmaCode), sharedData).catch(err => {
     console.error(err);
@@ -149,56 +149,56 @@ function saveShared(){
   });
 }
 
-function saveSharedDebounced(){
+function saveSharedDebounced() {
   clearTimeout(saveSharedTimer);
   saveSharedTimer = setTimeout(saveShared, 500);
 }
 
-function updateTurmaBadge(){
+function updateTurmaBadge() {
   const badge = document.getElementById('turma-badge');
   if (badge) badge.textContent = turmaCode ? `Turma: ${turmaCode}` : '';
 }
 
 /* ---------------- helpers ---------------- */
 
-function uid(prefix){ return prefix + '_' + Math.random().toString(36).slice(2, 9); }
+function uid(prefix) { return prefix + '_' + Math.random().toString(36).slice(2, 9); }
 
-function mkItem(time, title, icon, category){
+function mkItem(time, title, icon, category) {
   return { id: uid('item'), time, title, icon, category };
 }
 
-function getTodayKey(date = new Date()){
-  const map = ['dom','seg','ter','qua','qui','sex','sab'];
+function getTodayKey(date = new Date()) {
+  const map = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
   return map[date.getDay()];
 }
 
-function formatDateLocal(date = new Date()){
+function formatDateLocal(date = new Date()) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 }
 
-function getChild(id){ return sharedData.children.find(c => c.id === id); }
+function getChild(id) { return sharedData.children.find(c => c.id === id); }
 
-function categoryColor(key){
+function categoryColor(key) {
   const c = CATEGORIES.find(c => c.key === key);
   return c ? c.color : '#9AA5A6';
 }
-function categoryLabel(key){
+function categoryLabel(key) {
   const c = CATEGORIES.find(c => c.key === key);
   return c ? c.label : 'Outro';
 }
 
-function getChecksFor(childId, dateKey){
+function getChecksFor(childId, dateKey) {
   return (sharedData.checks[childId] && sharedData.checks[childId][dateKey]) || {};
 }
 
-function toggleCheck(childId, dateKey, itemId){
+function toggleCheck(childId, dateKey, itemId) {
   if (!sharedData.checks[childId]) sharedData.checks[childId] = {};
   if (!sharedData.checks[childId][dateKey]) sharedData.checks[childId][dateKey] = {};
   const wasChecked = !!sharedData.checks[childId][dateKey][itemId];
-  if (wasChecked){
+  if (wasChecked) {
     delete sharedData.checks[childId][dateKey][itemId];
   } else {
     sharedData.checks[childId][dateKey][itemId] = true;
@@ -208,21 +208,21 @@ function toggleCheck(childId, dateKey, itemId){
   return !wasChecked;
 }
 
-function initials(name){
-  return (name || '?').trim().slice(0,1).toUpperCase();
+function initials(name) {
+  return (name || '?').trim().slice(0, 1).toUpperCase();
 }
 
-function escapeHtml(str){
+function escapeHtml(str) {
   return String(str ?? '').replace(/[&<>"']/g, s => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[s]));
 }
 
 /* ---------------- sound feedback ---------------- */
 
 let audioCtx = null;
-function playChime(celebratory){
-  try{
+function playChime(celebratory) {
+  try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const notes = celebratory ? [523.25, 659.25, 783.99] : [659.25, 880];
     notes.forEach((freq, i) => {
@@ -238,13 +238,13 @@ function playChime(celebratory){
       osc.start(start);
       osc.stop(start + 0.3);
     });
-  }catch(e){ /* audio not available */ }
+  } catch (e) { /* audio not available */ }
 }
 
 /* ---------------- toast ---------------- */
 
 let toastTimer = null;
-function showToast(msg){
+function showToast(msg) {
   const el = document.getElementById('toast');
   el.textContent = msg;
   el.classList.remove('hidden');
@@ -256,10 +256,10 @@ function showToast(msg){
    CHILD VIEW
    ========================================================= */
 
-function renderChildView(){
+function renderChildView() {
   const root = document.getElementById('view-root');
 
-  if (sharedData.children.length === 0){
+  if (sharedData.children.length === 0) {
     root.innerHTML = `
       <div class="empty-state">
         <span class="big-emoji">📋</span>
@@ -269,7 +269,7 @@ function renderChildView(){
     return;
   }
 
-  if (!getChild(localPrefs.activeChildViewer)){
+  if (!getChild(localPrefs.activeChildViewer)) {
     localPrefs.activeChildViewer = sharedData.children[0].id;
   }
   const child = getChild(localPrefs.activeChildViewer);
@@ -280,7 +280,7 @@ function renderChildView(){
   const checks = getChecksFor(child.id, dateKey);
   const doneCount = items.filter(i => checks[i.id]).length;
   const total = items.length;
-  const pct = total ? Math.round((doneCount/total)*100) : 0;
+  const pct = total ? Math.round((doneCount / total) * 100) : 0;
   const unchecked = items.filter(i => !checks[i.id]);
   const now = unchecked[0];
   const next = unchecked[1];
@@ -296,7 +296,7 @@ function renderChildView(){
 
   let bodyHtml = '';
 
-  if (total === 0){
+  if (total === 0) {
     bodyHtml = `
       <div class="empty-state">
         <span class="big-emoji">🗓️</span>
@@ -345,8 +345,8 @@ function renderChildView(){
         <div class="routine-list-head">Lista completa de ${weekdayLabel.toLowerCase()}</div>
         <div class="routine-list">
           ${items.map(item => {
-            const done = !!checks[item.id];
-            return `
+      const done = !!checks[item.id];
+      return `
             <div class="routine-item ${done ? 'done' : ''}" style="--cat-color:${categoryColor(item.category)}">
               <span class="r-icon">${item.icon || '⭐'}</span>
               <div class="r-body">
@@ -360,7 +360,7 @@ function renderChildView(){
                 ${done ? '✓' : ''}
               </button>
             </div>`;
-          }).join('')}
+    }).join('')}
         </div>
       </div>
     `;
@@ -389,7 +389,7 @@ function renderChildView(){
    TEACHER VIEW
    ========================================================= */
 
-function renderTeacherView(){
+function renderTeacherView() {
   const root = document.getElementById('view-root');
 
   const studentsHtml = sharedData.children.map(c => `
@@ -414,12 +414,12 @@ function renderTeacherView(){
   renderEditorPanel();
 }
 
-function renderEditorPanel(){
+function renderEditorPanel() {
   const panel = document.getElementById('editor-panel');
   if (!panel) return;
 
   const child = getChild(localPrefs.activeChildTeacher);
-  if (!child){
+  if (!child) {
     panel.innerHTML = `
       <div class="no-items-hint">
         <p>Selecione um aluno à esquerda ou cadastre um novo para montar a rotina.</p>
@@ -428,6 +428,8 @@ function renderEditorPanel(){
   }
 
   const wd = localPrefs.activeWeekdayTeacher || getTodayKey();
+  const copyOptions = WEEKDAYS.filter(w => w.key !== wd).map(w =>
+    `<option value="${w.key}">${w.label}</option>`).join('');
   const todayKey = getTodayKey();
   const items = child.routines[wd] || [];
 
@@ -457,6 +459,14 @@ function renderEditorPanel(){
     <div class="editor-head">
       <h2>${escapeHtml(child.name)} — rotina de ${WEEKDAYS.find(w => w.key === wd).label.toLowerCase()}</h2>
       <div class="editor-actions">
+      <label class="btn subtle" style="cursor:pointer;">
+      copiar de
+      <select id="copy-from-select" style="border:none;background:transparent;font-weight:600;">
+    <option value="">escolher dia…</option>
+    ${copyOptions}
+  </select>
+</label>
+<button class="btn" data-action="copy-day">Copiar</button>
         <button class="btn" data-action="clear-day">Limpar dia</button>
         <button class="btn primary" data-action="open-preview">👁️ Ver como a criança</button>
       </div>
@@ -470,7 +480,7 @@ function renderEditorPanel(){
       </div>
       ${rowsHtml}
     ` : `
-      <div class="no-items-hint">Nenhuma atividade para ${WEEKDAYS.find(w=>w.key===wd).label.toLowerCase()} ainda. Adicione a primeira abaixo.</div>
+      <div class="no-items-hint">Nenhuma atividade para ${WEEKDAYS.find(w => w.key === wd).label.toLowerCase()} ainda. Adicione a primeira abaixo.</div>
     `}
 
     <button class="add-item-btn" data-action="add-item">+ Adicionar atividade</button>
@@ -479,7 +489,7 @@ function renderEditorPanel(){
 
 /* ---------------- teacher actions ---------------- */
 
-function addChild(){
+function addChild() {
   const name = prompt('Nome do aluno:');
   if (!name || !name.trim()) return;
   const color = AVATAR_COLORS[sharedData.children.length % AVATAR_COLORS.length];
@@ -494,16 +504,16 @@ function addChild(){
   showToast('Aluno adicionado');
 }
 
-function deleteChild(childId){
+function deleteChild(childId) {
   const child = getChild(childId);
   if (!child) return;
   if (!confirm(`Remover ${child.name} e toda a rotina dele(a)? Essa ação não pode ser desfeita.`)) return;
   sharedData.children = sharedData.children.filter(c => c.id !== childId);
   delete sharedData.checks[childId];
-  if (localPrefs.activeChildTeacher === childId){
+  if (localPrefs.activeChildTeacher === childId) {
     localPrefs.activeChildTeacher = sharedData.children[0] ? sharedData.children[0].id : null;
   }
-  if (localPrefs.activeChildViewer === childId){
+  if (localPrefs.activeChildViewer === childId) {
     localPrefs.activeChildViewer = sharedData.children[0] ? sharedData.children[0].id : null;
   }
   saveShared();
@@ -512,7 +522,7 @@ function deleteChild(childId){
   showToast('Aluno removido');
 }
 
-function addItem(childId, wd){
+function addItem(childId, wd) {
   const child = getChild(childId);
   if (!child) return;
   const item = mkItem('', 'Nova atividade', '⭐', 'outro');
@@ -520,17 +530,17 @@ function addItem(childId, wd){
   saveShared();
   renderEditorPanel();
   const input = document.querySelector(`.item-row[data-item="${item.id}"] input[data-action="edit-title"]`);
-  if (input){ input.focus(); input.select(); }
+  if (input) { input.focus(); input.select(); }
 }
 
-function deleteItem(childId, wd, itemId){
+function deleteItem(childId, wd, itemId) {
   const child = getChild(childId);
   child.routines[wd] = child.routines[wd].filter(i => i.id !== itemId);
   saveShared();
   renderEditorPanel();
 }
 
-function moveItem(childId, wd, itemId, dir){
+function moveItem(childId, wd, itemId, dir) {
   const child = getChild(childId);
   const arr = child.routines[wd];
   const idx = arr.findIndex(i => i.id === itemId);
@@ -541,7 +551,17 @@ function moveItem(childId, wd, itemId, dir){
   renderEditorPanel();
 }
 
-function clearDay(childId, wd){
+function copyDay(childId, fromWd, toWd){
+  const child = getChild(childId);
+  if (!fromWd || fromWd === toWd) return;
+  const source = child.routines[fromWd] || [];
+  child.routines[toWd] = source.map(i => ({ ...i, id: uid('item') }));
+  saveShared();
+  renderEditorPanel();
+  showToast('Rotina copiada');
+}
+
+function clearDay(childId, wd) {
   const child = getChild(childId);
   if (!child.routines[wd].length) return;
   if (!confirm('Limpar todas as atividades deste dia?')) return;
@@ -552,30 +572,30 @@ function clearDay(childId, wd){
 
 /* ---------------- icon picker modal ---------------- */
 
-function buildIconGrid(){
+function buildIconGrid() {
   const grid = document.getElementById('icon-grid');
   grid.innerHTML = ICONS.map(ic => `<button type="button" data-icon="${ic}">${ic}</button>`).join('');
 }
 
-function openIconPicker(itemId){
+function openIconPicker(itemId) {
   editingIcon = { childId: localPrefs.activeChildTeacher, weekday: localPrefs.activeWeekdayTeacher, itemId };
   document.getElementById('icon-picker-modal').classList.remove('hidden');
 }
-function closeIconPicker(){
+function closeIconPicker() {
   editingIcon = null;
   document.getElementById('icon-picker-modal').classList.add('hidden');
 }
 
 /* ---------------- preview modal ---------------- */
 
-function openPreview(){
+function openPreview() {
   const child = getChild(localPrefs.activeChildTeacher);
   if (!child) return;
   const wd = localPrefs.activeWeekdayTeacher;
   const items = child.routines[wd] || [];
-  document.getElementById('preview-title-day').textContent = `— ${WEEKDAYS.find(w=>w.key===wd).label}`;
+  document.getElementById('preview-title-day').textContent = `— ${WEEKDAYS.find(w => w.key === wd).label}`;
   const body = document.getElementById('preview-body');
-  if (!items.length){
+  if (!items.length) {
     body.innerHTML = `<div class="empty-state"><span class="big-emoji">🗓️</span><p>Nenhuma atividade cadastrada para este dia.</p></div>`;
   } else {
     body.innerHTML = `
@@ -594,7 +614,7 @@ function openPreview(){
   }
   document.getElementById('preview-modal').classList.remove('hidden');
 }
-function closePreview(){
+function closePreview() {
   document.getElementById('preview-modal').classList.add('hidden');
 }
 
@@ -602,11 +622,11 @@ function closePreview(){
    TEMA
    ========================================================= */
 
-function applyTheme(){
+function applyTheme() {
   document.documentElement.setAttribute('data-theme', localPrefs.settings.theme === 'escuro' ? 'escuro' : 'claro');
 }
 
-function toggleTheme(){
+function toggleTheme() {
   localPrefs.settings.theme = localPrefs.settings.theme === 'escuro' ? 'claro' : 'escuro';
   saveLocalPrefs();
   applyTheme();
@@ -617,11 +637,11 @@ function toggleTheme(){
    APP SHELL / RENDER DISPATCH
    ========================================================= */
 
-function renderApp(){
+function renderApp() {
   applyTheme();
 
   const themeBtn = document.getElementById('theme-toggle');
-  if (themeBtn){
+  if (themeBtn) {
     const isDark = localPrefs.settings.theme === 'escuro';
     themeBtn.textContent = isDark ? '☀️ Tema claro' : '🌙 Tema escuro';
     themeBtn.setAttribute('aria-pressed', String(isDark));
@@ -639,18 +659,18 @@ function renderApp(){
 const PROFESSOR_PASSWORD = '789';
 let professorUnlocked = false;
 
-function openProfessorPasswordModal(){
+function openProfessorPasswordModal() {
   const input = document.getElementById('professor-password-input');
   input.value = '';
   document.getElementById('professor-password-modal').classList.remove('hidden');
   setTimeout(() => input.focus(), 50);
 }
-function closeProfessorPasswordModal(){
+function closeProfessorPasswordModal() {
   document.getElementById('professor-password-modal').classList.add('hidden');
 }
-function submitProfessorPassword(){
+function submitProfessorPassword() {
   const input = document.getElementById('professor-password-input');
-  if (input.value === PROFESSOR_PASSWORD){
+  if (input.value === PROFESSOR_PASSWORD) {
     professorUnlocked = true;
     closeProfessorPasswordModal();
     setMode('professor');
@@ -661,7 +681,7 @@ function submitProfessorPassword(){
   }
 }
 
-function setMode(mode){
+function setMode(mode) {
   localPrefs.activeMode = mode;
   saveLocalPrefs();
   renderApp();
@@ -669,21 +689,21 @@ function setMode(mode){
 
 /* ---------------- portão de entrada da turma ---------------- */
 
-function initTurmaGate(){
+function initTurmaGate() {
   const gate = document.getElementById('turma-gate');
   const input = document.getElementById('turma-code-input');
   const joinBtn = document.getElementById('turma-join-btn');
 
   joinBtn.addEventListener('click', () => {
     const code = input.value.trim();
-    if (!code){ input.focus(); return; }
+    if (!code) { input.focus(); return; }
     connectToTurma(code);
   });
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') joinBtn.click();
   });
 
-  if (turmaCode){
+  if (turmaCode) {
     gate.classList.add('hidden');
     document.getElementById('app').classList.remove('hidden');
     connectToTurma(turmaCode);
@@ -698,8 +718,8 @@ function initTurmaGate(){
 document.addEventListener('click', (e) => {
 
   const modeBtn = e.target.closest('[data-mode]');
-  if (modeBtn){
-    if (modeBtn.dataset.mode === 'professor' && !professorUnlocked){
+  if (modeBtn) {
+    if (modeBtn.dataset.mode === 'professor' && !professorUnlocked) {
       openProfessorPasswordModal();
     } else {
       setMode(modeBtn.dataset.mode);
@@ -707,17 +727,17 @@ document.addEventListener('click', (e) => {
     return;
   }
 
-  if (e.target.closest('#professor-password-submit')){ submitProfessorPassword(); return; }
-  if (e.target.closest('[data-action="close-professor-password"]')){ closeProfessorPasswordModal(); return; }
+  if (e.target.closest('#professor-password-submit')) { submitProfessorPassword(); return; }
+  if (e.target.closest('[data-action="close-professor-password"]')) { closeProfessorPasswordModal(); return; }
 
-  if (e.target.closest('#theme-toggle')){ toggleTheme(); return; }
-  if (e.target.closest('#turma-leave-btn')){ leaveTurma(); return; }
+  if (e.target.closest('#theme-toggle')) { toggleTheme(); return; }
+  if (e.target.closest('#turma-leave-btn')) { leaveTurma(); return; }
 
   const actionEl = e.target.closest('[data-action]');
-  if (actionEl){
+  if (actionEl) {
     const action = actionEl.dataset.action;
 
-    switch(action){
+    switch (action) {
       case 'pick-viewer':
         localPrefs.activeChildViewer = actionEl.dataset.child;
         saveLocalPrefs(); renderChildView(); return;
@@ -733,7 +753,7 @@ document.addEventListener('click', (e) => {
         const total = items.length;
         const nowChecked = toggleCheck(child.id, dateKey, actionEl.dataset.item);
         renderChildView();
-        if (nowChecked){
+        if (nowChecked) {
           const checks = getChecksFor(child.id, dateKey);
           const doneCount = items.filter(i => checks[i.id]).length;
           if (doneCount === total && total > 0 && localPrefs.settings.sound) playChime(true);
@@ -787,7 +807,7 @@ document.addEventListener('click', (e) => {
 
   // icon grid selection
   const iconChoice = e.target.closest('#icon-grid button');
-  if (iconChoice && editingIcon){
+  if (iconChoice && editingIcon) {
     const child = getChild(editingIcon.childId);
     const item = child.routines[editingIcon.weekday].find(i => i.id === editingIcon.itemId);
     if (item) item.icon = iconChoice.dataset.icon;
@@ -819,19 +839,19 @@ document.addEventListener('input', (e) => {
 
 document.addEventListener('change', (e) => {
   const action = e.target.dataset.action;
-  if (action === 'edit-category'){
+  if (action === 'edit-category') {
     const child = getChild(localPrefs.activeChildTeacher);
     const item = child.routines[localPrefs.activeWeekdayTeacher].find(i => i.id === e.target.dataset.item);
-    if (item){ item.category = e.target.value; saveShared(); renderEditorPanel(); }
+    if (item) { item.category = e.target.value; saveShared(); renderEditorPanel(); }
   }
 });
 
 document.addEventListener('keydown', (e) => {
-  if (e.target.id === 'professor-password-input' && e.key === 'Enter'){
+  if (e.target.id === 'professor-password-input' && e.key === 'Enter') {
     submitProfessorPassword();
     return;
   }
-  if (e.key === 'Escape'){
+  if (e.key === 'Escape') {
     closeIconPicker();
     closePreview();
     closeProfessorPasswordModal();
