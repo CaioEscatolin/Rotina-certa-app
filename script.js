@@ -551,7 +551,7 @@ function moveItem(childId, wd, itemId, dir) {
   renderEditorPanel();
 }
 
-function copyDay(childId, fromWd, toWd){
+function copyDay(childId, fromWd, toWd) {
   const child = getChild(childId);
   if (!fromWd || fromWd === toWd) return;
   const source = child.routines[fromWd] || [];
@@ -786,6 +786,12 @@ document.addEventListener('click', (e) => {
 
       case 'move-down':
         moveItem(localPrefs.activeChildTeacher, localPrefs.activeWeekdayTeacher, actionEl.dataset.item, 1); return;
+
+      case 'copy-day': {
+        const sel = document.getElementById('copy-from-select');
+        copyDay(localPrefs.activeChildTeacher, sel ? sel.value : '', localPrefs.activeWeekdayTeacher);
+        return;
+      }
 
       case 'clear-day':
         clearDay(localPrefs.activeChildTeacher, localPrefs.activeWeekdayTeacher); return;
