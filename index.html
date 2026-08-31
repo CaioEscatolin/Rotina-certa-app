@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rotina Certa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app" class="hidden">
+
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 48 48" width="34" height="34">
+          <rect x="4" y="4" width="40" height="40" rx="13" fill="var(--teal-700)"/>
+          <path d="M14 25.5 L21 32.5 L35 16.5" stroke="var(--ivory)" stroke-width="4.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <div class="brand-text">
+        <span class="brand-name">Rotina Certa</span>
+        <span class="brand-tag">O dia, passo a passo</span>
+      </div>
+    </div>
+
+    <nav class="mode-switch" role="tablist" aria-label="Escolher modo do aplicativo">
+      <button id="tab-crianca" class="mode-btn is-active" role="tab" aria-selected="true" data-mode="crianca">
+        <span class="mode-icon" aria-hidden="true"></span> Sou a criança
+      </button>
+      <button id="tab-professor" class="mode-btn" role="tab" aria-selected="false" data-mode="professor">
+        <span class="mode-icon" aria-hidden="true"></span> Sou o professor
+      </button>
+    </nav>
+
+    <div class="header-tools">
+      <button id="turma-leave-btn" class="turma-badge" title="Trocar de turma neste aparelho">
+        <span id="turma-badge"></span> <span class="turma-badge-change">trocar</span>
+      </button>
+      <button id="theme-toggle" class="theme-toggle" aria-pressed="false">🌙 Tema escuro</button>
+    </div>
+  </header>
+
+  <main id="view-root" aria-live="polite"></main>
+
+  <footer class="app-footer">
+    <span>Rotina Certa — feito para acompanhar a criança do café da manhã até a hora de ir para casa.</span>
+  </footer>
+</div>
+
+<!-- Portão de entrada: código da turma -->
+<div id="turma-gate" class="modal-overlay">
+  <div class="modal-card">
+    <div class="modal-card-head">
+      <h2>Conectar à turma</h2>
+    </div>
+    <p class="modal-hint">
+      Esse código conecta o professor e a criança aos mesmos dados, em qualquer aparelho.
+      Se o professor já criou uma turma, peça o código a ele. Se for a primeira vez, crie um código novo.
+    </p>
+    <div class="turma-codes-hint">
+      <span class="turma-codes-hint-title">Códigos das turmas</span>
+      <div class="turma-codes-hint-row"><strong>Turma 1</strong><span class="turma-code-pill">123</span></div>
+      <div class="turma-codes-hint-row"><strong>Turma 2</strong><span class="turma-code-pill">456</span></div>
+    </div>
+    <div class="turma-gate-form">
+      <input id="turma-code-input" type="text" placeholder="Digite o código da turma" autocomplete="off">
+      <button id="turma-join-btn" class="btn primary">Entrar com este código</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: senha do professor -->
+<div id="professor-password-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Senha do professor">
+  <div class="modal-card">
+    <div class="modal-card-head">
+      <h2>Área do professor</h2>
+      <button class="icon-btn-close" data-action="close-professor-password" aria-label="Fechar">✕</button>
+    </div>
+    <p class="modal-hint">Digite a senha para acessar a área do professor.</p>
+    <div class="turma-codes-hint">
+      <span class="turma-codes-hint-title">Senha do professor</span>
+      <div class="turma-codes-hint-row"><strong>Acesso</strong><span class="turma-code-pill">789</span></div>
+    </div>
+    <div class="turma-gate-form">
+      <input id="professor-password-input" type="text" placeholder="Senha" autocomplete="off">
+      <button id="professor-password-submit" class="btn primary">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: seletor de ícone -->
+<div id="icon-picker-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Escolher ícone da atividade">
+  <div class="modal-card">
+    <div class="modal-card-head">
+      <h2>Escolha um ícone</h2>
+      <button class="icon-btn-close" data-action="close-icon-picker" aria-label="Fechar">✕</button>
+    </div>
+    <div id="icon-grid" class="icon-grid"></div>
+  </div>
+</div>
+
+<!-- Modal: pré-visualização -->
+<div id="preview-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Pré-visualização da rotina">
+  <div class="modal-card modal-card-wide">
+    <div class="modal-card-head">
+      <h2>Como a criança vai ver <span id="preview-title-day"></span></h2>
+      <button class="icon-btn-close" data-action="close-preview" aria-label="Fechar">✕</button>
+    </div>
+    <p class="modal-hint">Pré-visualização — os itens aqui não podem ser marcados.</p>
+    <div id="preview-body"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden" role="status"></div>
+
+<script type="module" src="script.js"></script>
+</body>
+</html>

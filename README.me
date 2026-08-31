@@ -1,0 +1,92 @@
+# Rotina Certa
+
+Webapp para ajudar crianças autistas a acompanhar sua rotina diária, com uma
+área para a criança ver e marcar suas atividades, e uma área para o professor
+montar a rotina de cada aluno.
+
+Interface calma e de baixo estímulo (sem cores vibrantes ou piscantes, cantos
+arredondados, alvos de toque grandes), pensada para crianças que passam boa
+parte do dia na escola.
+
+## Funcionalidades
+
+- **Visão da criança**: mostra a atividade atual e a próxima, uma lista
+  completa do dia e um botão grande para marcar cada atividade como feita,
+  com barra de progresso e celebração ao concluir tudo.
+- **Visão do professor** (protegida por senha): cadastro de alunos, montagem
+  da rotina por dia da semana, escolha de ícone e categoria para cada
+  atividade, reordenação, exclusão e uma pré-visualização de como a criança
+  vai ver a tela.
+- **Sincronização em nuvem**: os dados (alunos, rotinas, marcações) ficam
+  salvos no Firebase Firestore. Qualquer aparelho que entrar com o mesmo
+  código de turma vê e edita os mesmos dados, em tempo real.
+- **Tema claro/escuro** e **som ao marcar atividades**, ambos configuráveis
+  por aparelho (não sincronizam entre dispositivos, de propósito).
+
+## Estrutura de arquivos
+
+```
+index.html          estrutura da página
+style.css            estilos e temas (claro/escuro)
+script.js            lógica do app (módulo ES, importa o Firebase)
+firebase-config.js   chaves de configuração do seu projeto Firebase
+```
+
+## Como funciona o código de turma
+
+Ao abrir o app pela primeira vez em um aparelho, é preciso digitar um
+**código de turma**. Esse código funciona como uma senha simples que liga
+todos os aparelhos aos mesmos dados no Firestore:
+
+- Se o código já existe, o aparelho passa a ver os dados daquela turma.
+- Se o código é novo, uma turma vazia é criada automaticamente com aquele
+  código, pronta para o professor cadastrar do zero.
+
+O código fica salvo no `localStorage` daquele aparelho, então não precisa
+digitar de novo nas próximas vezes (há um botão "trocar" no cabeçalho para
+sair da turma e entrar em outra).
+
+## Senha da área do professor
+
+A aba "Sou o professor" pede uma senha antes de abrir. A senha atual está
+definida na constante `PROFESSOR_PASSWORD` no início do `script.js`. Ela vale
+apenas para a sessão atual da página — ao recarregar, a senha é pedida de
+novo.
+
+## Configurar o Firebase
+
+1. Crie um projeto em [console.firebase.google.com](https://console.firebase.google.com).
+2. Ative o **Cloud Firestore** (modo de teste é suficiente para começar).
+3. Registre um app Web no projeto e copie o objeto `firebaseConfig`.
+4. Cole os valores em `firebase-config.js`, substituindo os de exemplo.
+5. Em Firestore → Regras, publique:
+
+   ```
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /turmas/{turmaId} {
+         allow read, write: if true;
+       }
+     }
+   }
+   ```
+
+   ⚠️ Essa regra permite que qualquer pessoa com um código de turma leia e
+   edite aquela turma — é o mesmo princípio de uma senha simples, sem login.
+   Adequado para uso controlado (uma escola, uma sala). Para um cenário com
+   mais usuários ou dados mais sensíveis, vale evoluir para autenticação de
+   usuários e regras mais restritivas.
+
+## Publicar
+
+Suba os 4 arquivos para um repositório no GitHub e ative o GitHub Pages
+(Settings → Pages → Source: branch principal). O app **precisa** ser aberto
+via `http://` ou `https://` — abrir o `index.html` direto pelo sistema de
+arquivos (`file://`) não funciona, pois o `script.js` é um módulo ES que
+depende de importar o SDK do Firebase.
+
+## Tecnologias
+
+HTML, CSS e JavaScript puro (sem frameworks), Firebase Firestore para
+persistência e sincronização em nuvem.
