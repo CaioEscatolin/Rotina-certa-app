@@ -7,10 +7,11 @@
    aparelho, em localStorage.
    ========================================================= */
 
+import { cloneData, mergeChanges } from './sync.js';
 import { firebaseConfig } from './firebase-config.js';
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
-  getFirestore, doc, setDoc, onSnapshot
+  getFirestore, doc, runTransaction, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 const fbApp = initializeApp(firebaseConfig);
@@ -74,11 +75,24 @@ function saveLocalPrefs() {
 }
 
 let localPrefs = loadLocalPrefs();
-let turmaCode = (localStorage.getItem(TURMA_KEY) || '').trim();
+localPrefs.activeMode = 'crianca'; // A demo password must be entered again after reload.
+let turmaCode = '';
+try { turmaCode = (localStorage.getItem(TURMA_KEY) || '').trim(); } catch {}
 let sharedData = { children: [], checks: {} };
 let unsubscribeTurma = null;
 let editingIcon = null; // { childId, weekday, itemId }
 let saveSharedTimer = null;
+let lastStagedData = { children: [], checks: {} };
+let pendingSaves = [];
+let savingPromise = null;
+let turmaReady = false;
+let connectionVersion = 0;
+let leavingTurma = false;
+let saveFailed = false;
+function setSaveStatus(message, failed = false) {
+  document.getElementById('save-status').textContent = message;
+  document.getElementById('retry-save').classList.toggle('hidden', !failed);
+}
 
 /* ---------------- dados padrão de uma turma nova ---------------- */
 
@@ -102,56 +116,137 @@ function ensureLocalSelection() {
 }
 
 function connectToTurma(code) {
-  turmaCode = code.trim().toUpperCase();
-  localStorage.setItem(TURMA_KEY, turmaCode);
+  const normalized = code.trim().toUpperCase();
+  if (!normalized || normalized.includes('/') || normalized.length > 100) {
+    showToast('Use um código de até 100 caracteres, sem barra.');
+    return;
+  }
+  clearTimeout(saveSharedTimer);
+  turmaCode = normalized;
+  const version = ++connectionVersion;
+  turmaReady = false;
+  professorUnlocked = false;
+  localPrefs.activeMode = 'crianca';
+  sharedData = defaultSharedData();
+  lastStagedData = cloneData(sharedData);
+  pendingSaves = [];
+  saveFailed = false;
+  try { localStorage.setItem(TURMA_KEY, turmaCode); } catch {}
   if (unsubscribeTurma) unsubscribeTurma();
-
+  document.getElementById('view-root').innerHTML = '<p role="status">Carregando turma…</p>';
+  setSaveStatus('Conectando…');
   const ref = doc(db, 'turmas', turmaCode);
   unsubscribeTurma = onSnapshot(ref, (snap) => {
-    if (snap.exists()) {
-      sharedData = snap.data();
-    } else {
-      sharedData = defaultSharedData();
-      setDoc(ref, sharedData).catch(err => console.error(err));
+    if (version !== connectionVersion) return;
+    // Stage unsubmitted typing before applying a remote snapshot.
+    if (turmaReady) stageShared();
+    let data = snap.exists() ? snap.data() : defaultSharedData();
+    if (!Array.isArray(data.children) || !data.checks || typeof data.checks !== 'object') {
+      setSaveStatus('Dados da turma inválidos. Nenhuma alteração foi feita.', true);
+      turmaReady = false;
+      return;
     }
+    for (const change of pendingSaves) data = mergeChanges(change.base, change.local, data);
+    sharedData = data;
+    lastStagedData = cloneData(data);
+    turmaReady = true;
     ensureLocalSelection();
-
-    // evita perder o foco/cursor do professor enquanto ele digita
     const active = document.activeElement;
     const typing = active && active.matches('.item-row input[type="text"], .item-row input[type="time"]');
     if (!typing) renderApp();
     updateTurmaBadge();
+    if (!pendingSaves.length) setSaveStatus('Sincronizado');
+    if (pendingSaves.length && !saveFailed) flushSaves();
   }, (err) => {
+    if (version !== connectionVersion) return;
     console.error(err);
-    showToast('Não foi possível conectar. Verifique sua internet.');
+    turmaReady = false;
+    setSaveStatus('Falha ao conectar. Confira a conexão e as permissões.', true);
   });
-
   document.getElementById('turma-gate').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
 }
 
-function leaveTurma() {
-  if (!confirm('Sair desta turma neste aparelho? Você pode entrar de novo quando quiser com o código.')) return;
+async function leaveTurma() {
+  if (leavingTurma || !confirm('Sair desta turma neste aparelho? Você pode entrar de novo quando quiser com o código.')) return;
+  leavingTurma = true;
+  clearTimeout(saveSharedTimer);
+  stageShared();
+  const saved = await flushSaves();
+  if (!saved) {
+    leavingTurma = false;
+    showToast('Não foi possível salvar. Tente novamente antes de trocar a turma.');
+    return;
+  }
+  ++connectionVersion;
   if (unsubscribeTurma) unsubscribeTurma();
+  unsubscribeTurma = null;
   turmaCode = '';
-  localStorage.removeItem(TURMA_KEY);
+  turmaReady = false;
+  professorUnlocked = false;
+  sharedData = defaultSharedData();
+  lastStagedData = cloneData(sharedData);
+  pendingSaves = [];
+  localPrefs.activeMode = 'crianca';
+  try { localStorage.removeItem(TURMA_KEY); } catch {}
+  closeIconPicker(); closePreview(); closeProfessorPasswordModal();
   document.getElementById('app').classList.add('hidden');
   document.getElementById('turma-gate').classList.remove('hidden');
-  const input = document.getElementById('turma-code-input');
-  if (input) input.value = '';
+  document.getElementById('turma-code-input').value = '';
+  leavingTurma = false;
+}
+
+function stageShared() {
+  if (!turmaCode || !turmaReady) return;
+  if (JSON.stringify(lastStagedData) === JSON.stringify(sharedData)) return;
+  pendingSaves.push({ base: cloneData(lastStagedData), local: cloneData(sharedData) });
+  lastStagedData = cloneData(sharedData);
+  setSaveStatus('Alterações pendentes…');
+}
+
+function flushSaves() {
+  if (savingPromise) return savingPromise;
+  if (!pendingSaves.length) return Promise.resolve(true);
+  const code = turmaCode;
+  const version = connectionVersion;
+  saveFailed = false;
+  savingPromise = (async () => {
+    try {
+      while (pendingSaves.length && version === connectionVersion) {
+        const change = pendingSaves[0];
+        setSaveStatus('Salvando…');
+        await runTransaction(db, async transaction => {
+          const ref = doc(db, 'turmas', code);
+          const snapshot = await transaction.get(ref);
+          const remote = snapshot.exists() ? snapshot.data() : defaultSharedData();
+          transaction.set(ref, mergeChanges(change.base, change.local, remote));
+        });
+        pendingSaves.shift();
+      }
+      if (version === connectionVersion) setSaveStatus('Salvo');
+      return true;
+    } catch (err) {
+      console.error(err);
+      saveFailed = true;
+      setSaveStatus('Falha ao salvar. Mantenha a página aberta e tente novamente.', true);
+      return false;
+    } finally {
+      savingPromise = null;
+    }
+  })();
+  return savingPromise;
 }
 
 function saveShared() {
-  if (!turmaCode) return;
-  setDoc(doc(db, 'turmas', turmaCode), sharedData).catch(err => {
-    console.error(err);
-    showToast('Erro ao salvar. Verifique sua internet.');
-  });
+  clearTimeout(saveSharedTimer);
+  stageShared();
+  return flushSaves();
 }
 
 function saveSharedDebounced() {
   clearTimeout(saveSharedTimer);
-  saveSharedTimer = setTimeout(saveShared, 500);
+  stageShared();
+  saveSharedTimer = setTimeout(flushSaves, 500);
 }
 
 function updateTurmaBadge() {
@@ -393,9 +488,9 @@ function renderTeacherView() {
   const root = document.getElementById('view-root');
 
   const studentsHtml = sharedData.children.map(c => `
-    <div class="student-row ${c.id === localPrefs.activeChildTeacher ? 'is-active' : ''}" data-action="pick-teacher-child" data-child="${c.id}">
-      <span class="avatar" style="background:${c.color}">${escapeHtml(initials(c.name))}</span>
-      <span class="name">${escapeHtml(c.name)}</span>
+    <div class="student-row ${c.id === localPrefs.activeChildTeacher ? 'is-active' : ''}">
+      <button class="student-select" data-action="pick-teacher-child" data-child="${c.id}" aria-pressed="${c.id === localPrefs.activeChildTeacher}"><span class="avatar" style="background:${c.color}">${escapeHtml(initials(c.name))}</span>
+      <span class="name">${escapeHtml(c.name)}</span></button>
       <button class="del-student" title="Remover aluno" aria-label="Remover ${escapeHtml(c.name)}" data-action="delete-child" data-child="${c.id}">🗑️</button>
     </div>
   `).join('');
@@ -555,6 +650,7 @@ function copyDay(childId, fromWd, toWd) {
   const child = getChild(childId);
   if (!fromWd || fromWd === toWd) return;
   const source = child.routines[fromWd] || [];
+  if (child.routines[toWd]?.length && !confirm('Substituir as atividades deste dia pela rotina escolhida? As atividades atuais serão removidas.')) return;
   child.routines[toWd] = source.map(i => ({ ...i, id: uid('item') }));
   saveShared();
   renderEditorPanel();
@@ -638,6 +734,8 @@ function toggleTheme() {
    ========================================================= */
 
 function renderApp() {
+  if (!turmaReady) return;
+  if (localPrefs.activeMode === 'professor' && !professorUnlocked) localPrefs.activeMode = 'crianca';
   applyTheme();
 
   const themeBtn = document.getElementById('theme-toggle');
@@ -682,6 +780,7 @@ function submitProfessorPassword() {
 }
 
 function setMode(mode) {
+  if (mode === 'professor' && !professorUnlocked) { openProfessorPasswordModal(); return; }
   localPrefs.activeMode = mode;
   saveLocalPrefs();
   renderApp();
@@ -717,6 +816,12 @@ function initTurmaGate() {
 
 document.addEventListener('click', (e) => {
 
+  if (e.target.closest('#retry-save')) {
+    if (!turmaReady) connectToTurma(turmaCode); else saveShared();
+    return;
+  }
+  if (e.target.closest('#turma-leave-btn')) { leaveTurma(); return; }
+  if (leavingTurma || !turmaReady) return;
   const modeBtn = e.target.closest('[data-mode]');
 if (modeBtn){
   if (modeBtn.dataset.mode === 'professor'){
@@ -830,6 +935,7 @@ if (modeBtn){
 });
 
 document.addEventListener('input', (e) => {
+  if (!turmaReady || leavingTurma) return;
   const action = e.target.dataset.action;
   if (!action) return;
   const child = getChild(localPrefs.activeChildTeacher);
@@ -844,6 +950,7 @@ document.addEventListener('input', (e) => {
 });
 
 document.addEventListener('change', (e) => {
+  if (!turmaReady || leavingTurma) return;
   const action = e.target.dataset.action;
   if (action === 'edit-category') {
     const child = getChild(localPrefs.activeChildTeacher);
@@ -866,3 +973,18 @@ document.addEventListener('keydown', (e) => {
 
 /* ---------------- init ---------------- */
 initTurmaGate();
+// Refresh the child's day after midnight or returning to an idle tab.
+let renderedDate = formatDateLocal();
+function refreshDate() {
+  const today = formatDateLocal();
+  if (today !== renderedDate) {
+    renderedDate = today;
+    if (turmaReady && localPrefs.activeMode === 'crianca') renderChildView();
+  }
+}
+setInterval(refreshDate, 30000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshDate(); });
+window.addEventListener('beforeunload', event => {
+  if (pendingSaves.length || savingPromise) { event.preventDefault(); event.returnValue = ''; }
+});
+window.addEventListener('online', () => { if (turmaCode && turmaReady) saveShared(); });
