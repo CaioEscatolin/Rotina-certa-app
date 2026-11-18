@@ -802,3 +802,17 @@ input, select{ font-family: inherit; }
   z-index: 200;
 }
 .toast.hidden{ display:none; }
+
+/* Keep every editor field available on narrow screens. */
+#retry-save.hidden { display:none; }
+.header-tools { flex-wrap:wrap; min-width:0; }
+.student-select { display:flex; align-items:center; gap:10px; flex:1; min-width:0; border:0; background:transparent; color:inherit; text-align:left; cursor:pointer; padding:4px; }
+#save-status { font-size:0.85rem; max-width:260px; }
+@media (max-width:640px) {
+  .item-row { grid-template-columns:40px minmax(0,1fr); gap:10px; }
+  .item-row input[type="text"] { grid-column:1 / -1; min-width:0; }
+  .item-row input[type="time"] { min-width:0; width:100%; }
+  .item-row select { display:block; grid-column:1 / -1; width:100%; }
+  .item-row .row-actions { grid-column:1 / -1; justify-content:flex-end; }
+  .item-row-head { display:none; }
+}
