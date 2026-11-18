@@ -1,3 +1,42 @@
+# Demonstração, não sistema de produção
+
+Este projeto é um site de teste. A senha visível é intencional para permitir
+que visitantes experimentem a área do professor. Ela não é autenticação real.
+Use somente nomes e rotinas fictícios. Não coloque dados reais de crianças.
+As regras abertas descritas abaixo servem apenas para esta demonstração;
+não são adequadas para escolas ou dados pessoais. Nenhuma regra ativa do
+Firebase foi alterada pelas correções do aplicativo.
+
+## Correções da demonstração
+
+- O modo do professor exige a senha novamente após recarregar ou trocar de turma.
+- O salvamento usa transações e combina apenas as mudanças locais com o documento
+  mais recente. Alterações em campos diferentes não substituem a turma inteira
+  por uma cópia antiga. Edições simultâneas no mesmo campo continuam seguindo
+  a última transação concluída.
+- A troca de turma aguarda o salvamento pendente. Se falhar, mantém a turma
+  atual e permite tentar novamente, sem enviar dados para a próxima turma.
+- Copiar para um dia que já tem atividades pede confirmação de substituição.
+- O seletor de categoria continua disponível no celular. A seleção do aluno
+  pode ser alcançada pelo teclado.
+- O cabeçalho informa conexão, salvamento e falha, com botão para tentar de novo.
+  Mantenha a página aberta enquanto houver alterações pendentes. As transações
+  precisam de conexão; a fila ainda não sobrevive ao fechamento da página.
+- A visão da criança verifica a virada do dia e o retorno à aba.
+
+A estrutura existente dos documentos no Firestore foi mantida. Não é preciso
+migrar ou apagar dados. O novo arquivo `sync.js` precisa ser publicado junto
+com `script.js`, `index.html` e `style.css`.
+
+### Testes de regressão
+
+Com Node.js 22 ou mais recente: `node sync.test.mjs`.
+Os testes usam dados fictícios em memória, sem acessar o Firebase. Cobrem
+marcações independentes, edição de campos diferentes, inclusão e exclusão
+de alunos, reordenação e preservação de campos desconhecidos.
+
+---
+
 # Rotina Certa
 
 Webapp para ajudar crianças autistas a acompanhar sua rotina diária, com uma
